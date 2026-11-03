@@ -1,0 +1,1084 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b1633">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Milk Run">
+<meta name="description" content="Feed, side and nappy tracker with next-feed alerts.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>Milk Run</title>
+<style>
+:root{
+  --ink:#1b1633; --ink-2:#241d42; --ink-3:#2f2754; --line:#3d3468;
+  --milk:#f7efe3; --dusk:#bdb3d6; --mute:#8b82ab;
+  --moon:#f5e6c8; --apricot:#ffb48a; --lilac:#b7a4ff; --butter:#ffd978; --mint:#93e2c6; --rose:#ff8fa3;
+  --font: ui-rounded, "SF Pro Rounded", "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--ink);color:var(--milk);font-family:var(--font);font-size:17px;line-height:1.4}
+body{min-height:100vh;min-height:100dvh;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none;-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--lilac);outline-offset:3px;border-radius:12px}
+[hidden]{display:none!important}
+.num{font-variant-numeric:tabular-nums}
+
+#app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;
+  padding:calc(env(safe-area-inset-top) + 6px) 16px calc(env(safe-area-inset-bottom) + 14px)}
+.top{display:flex;align-items:center;justify-content:space-between;min-height:48px}
+.brand{font-size:19px;font-weight:700;letter-spacing:.01em;display:flex;align-items:center;gap:8px}
+.brand svg{width:20px;height:20px;color:var(--moon)}
+.top-actions{display:flex;gap:4px}
+.icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:var(--dusk)}
+.icon svg{width:24px;height:24px}
+.icon:active{background:var(--ink-2)}
+.notice{margin:4px 0 0;padding:10px 14px;border-radius:14px;background:var(--ink-2);color:var(--dusk);font-size:15px;display:flex;gap:10px;align-items:flex-start}
+.notice b{color:var(--milk);font-weight:600}
+.notice .x{margin-left:auto;color:var(--mute);font-size:20px;line-height:1;padding:0 2px}
+.notice.warn{color:var(--rose)}
+
+.view{flex:1;display:flex;flex-direction:column}
+
+/* hero */
+.hero{text-align:center;padding:4px 0 0}
+.moon{width:168px;height:168px;display:block;margin:0 auto -6px;overflow:visible}
+.moon .halo{transition:opacity .6s}
+.moon .disc{fill:#2a2250;stroke:#3a3166;stroke-width:1}
+.moon .lit{fill:var(--moon);transition:fill .4s}
+.moon .ring{fill:none;stroke-width:3;opacity:0}
+.moon .star{fill:var(--moon)}
+.hero.overdue .moon .lit{fill:#ffc9d3}
+.hero.overdue .moon .halo{animation:breathe 2.8s ease-in-out infinite}
+.hero.feeding .moon .ring{opacity:1}
+.hero.feeding.running .moon .ring{animation:breathe 2.4s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.45}}
+.hero-label{margin:0;font-size:17px;color:var(--dusk);font-weight:600}
+.hero-time{margin:0;font-size:clamp(60px,20vw,84px);line-height:1;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hero-sub{margin:6px 0 0;font-size:19px;font-weight:600;color:var(--milk);font-variant-numeric:tabular-nums}
+.hero.overdue .hero-sub{color:var(--rose)}
+.hero-empty{display:block;margin:4px auto 0;max-width:30ch;color:var(--dusk);font-size:17px;font-weight:500}
+
+.facts{text-align:center;margin:16px auto 0;max-width:34ch;color:var(--dusk);font-size:15.5px}
+.facts p{margin:0 0 4px}
+.facts .due{color:var(--rose);font-weight:600}
+.alarm{display:inline-flex;align-items:center;gap:8px;margin-top:10px;min-height:40px;padding:0 16px;border-radius:20px;border:1.5px solid var(--line);color:var(--milk);font-size:15px;font-weight:600;text-decoration:none}
+.alarm svg{width:18px;height:18px;color:var(--butter)}
+
+/* 24h */
+.day{margin:18px 0 0}
+.strip{position:relative;height:30px;border-radius:15px;background:var(--ink-2);overflow:hidden}
+.strip i{position:absolute;top:7px;height:16px;border-radius:8px;min-width:5px;transform:translateX(-1px)}
+.strip .m-breast{background:var(--milk);opacity:.9}
+.strip .m-bottle{background:var(--butter)}
+.strip .m-top{width:6px;height:6px;top:12px;border-radius:3px;background:var(--butter)}
+.strip .m-nap{width:6px;height:6px;top:22px;border-radius:3px;background:var(--mint);min-width:0}
+.strip .m-now{background:var(--apricot);animation:breathe 2.4s ease-in-out infinite}
+.strip .tick{position:absolute;top:0;bottom:0;width:1px;background:var(--line);border-radius:0;height:auto;min-width:0}
+.ticks{position:relative;height:18px;font-size:12px;color:var(--mute)}
+.ticks span{position:absolute;top:2px;transform:translateX(-50%);font-variant-numeric:tabular-nums}
+.day-sum{margin:6px 0 0;font-size:14.5px;color:var(--dusk);text-align:center}
+
+/* controls */
+.controls{margin-top:auto;padding-top:18px;position:sticky;bottom:0;z-index:5;
+  margin-bottom:calc(-14px - env(safe-area-inset-bottom));padding-bottom:calc(14px + env(safe-area-inset-bottom));
+  background:linear-gradient(to bottom,rgb(27 22 51 / 0),var(--ink) 18px)}
+.sides{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.side{--c:var(--apricot);position:relative;min-height:128px;border-radius:30px;border:2px solid color-mix(in srgb,var(--c) 50%,transparent);
+  background:color-mix(in srgb,var(--c) 9%,var(--ink-2));color:var(--c);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:background .15s,color .15s,transform .1s}
+.side[data-side="R"]{--c:var(--lilac)}
+.side:active{transform:scale(.97)}
+.side .nm{font-size:30px;font-weight:700;line-height:1.1}
+.side .tm{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--milk)}
+.side .hint{font-size:14px;font-weight:600;color:var(--dusk)}
+.side .tag{position:absolute;top:10px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--c);color:var(--ink)}
+.side.on{background:var(--c);color:var(--ink);border-color:var(--c)}
+.side.on .tm{color:var(--ink)}
+.side.on .hint{color:color-mix(in srgb,var(--ink) 70%,transparent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.row2.wide{grid-template-columns:1fr 1.6fr}
+.pill{min-height:62px;border-radius:22px;background:var(--ink-2);border:1.5px solid var(--line);font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
+.pill svg{width:22px;height:22px}
+.pill:active{transform:scale(.98)}
+.pill.bottle{color:var(--butter)}
+.pill.nappy{color:var(--mint)}
+.pill.primary{background:var(--milk);border-color:var(--milk);color:var(--ink)}
+
+/* lists (history/settings) */
+.page-title{font-size:30px;font-weight:700;margin:6px 0 8px;letter-spacing:-.01em}
+.lead{color:var(--dusk);margin:0 0 12px;font-size:15.5px}
+.add-row{display:flex;gap:8px;margin:4px 0 8px;flex-wrap:wrap}
+.daygroup{margin-top:18px}
+.dayhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:0 2px 6px;border-bottom:1px solid var(--line)}
+.dayhead h2{margin:0;font-size:19px}
+.dayhead span{color:var(--mute);font-size:14px;text-align:right}
+.entry{display:grid;grid-template-columns:56px 14px 1fr auto;gap:8px;align-items:start;width:100%;text-align:left;padding:12px 2px;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.entry:active{background:var(--ink-2)}
+.entry .t{font-weight:700;font-variant-numeric:tabular-nums}
+.entry .dot{width:12px;height:12px;border-radius:6px;margin-top:5px;background:var(--milk)}
+.entry .d{min-width:0}
+.entry .ti{font-weight:600}
+.entry .de{color:var(--dusk);font-size:15px}
+.entry .gap{color:var(--mute);font-size:14px;font-variant-numeric:tabular-nums;margin-top:2px}
+.dot.f{background:linear-gradient(90deg,var(--apricot) 50%,var(--lilac) 50%)}
+.dot.fl{background:var(--apricot)} .dot.fr{background:var(--lilac)}
+.dot.b{background:var(--butter)} .dot.n{background:var(--mint)}
+.empty{color:var(--dusk);text-align:center;margin:40px auto;max-width:28ch}
+
+.set h2{font-size:20px;margin:26px 0 10px}
+.set .row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.set .row label,.set .row .lbl{font-weight:600}
+.set p.note{color:var(--dusk);font-size:15px;margin:10px 0}
+.set ol{padding-left:22px;margin:10px 0;color:var(--dusk);font-size:15.5px}
+.set ol li{margin:0 0 8px}
+.set ol b{color:var(--milk)}
+.text{width:100%;min-height:48px;border-radius:14px;border:1.5px solid var(--line);background:var(--ink-2);padding:0 14px;font-size:17px}
+.text:focus{outline:none;border-color:var(--lilac)}
+.row .text{max-width:200px}
+.code{display:flex;gap:8px;align-items:center;margin:6px 0}
+.code output,.code .text{flex:1;min-width:0;font-weight:700;letter-spacing:.02em;overflow-wrap:anywhere;background:var(--ink-2);border:1.5px dashed var(--line);border-radius:14px;padding:10px 12px;font-size:16px;min-height:48px;display:flex;align-items:center}
+.code .text{border-style:solid;font-weight:600}
+.btn{min-height:46px;padding:0 18px;border-radius:16px;border:1.5px solid var(--line);background:var(--ink-2);font-weight:700;font-size:16px;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--milk);border-color:var(--milk);color:var(--ink)}
+.btn.danger{color:var(--rose);border-color:color-mix(in srgb,var(--rose) 45%,transparent)}
+.btn.block{width:100%;min-height:58px;font-size:18px;border-radius:20px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.foot{color:var(--mute);font-size:13.5px;margin:30px 0 8px;text-align:center}
+
+/* switch */
+.sw{position:relative;width:54px;height:32px;flex:none}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.sw span{position:absolute;inset:0;border-radius:16px;background:var(--ink-3);border:1.5px solid var(--line);transition:background .15s}
+.sw span::after{content:"";position:absolute;top:3px;left:3px;width:23px;height:23px;border-radius:12px;background:var(--dusk);transition:transform .15s,background .15s}
+.sw input:checked+span{background:var(--mint);border-color:var(--mint)}
+.sw input:checked+span::after{transform:translateX(22px);background:var(--ink)}
+.sw input:focus-visible+span{outline:2px solid var(--lilac);outline-offset:2px}
+
+/* stepper */
+.step{display:flex;align-items:center;gap:6px}
+.step button{width:44px;height:44px;border-radius:14px;border:1.5px solid var(--line);background:var(--ink-2);font-size:22px;font-weight:700;display:grid;place-items:center}
+.step output{min-width:78px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{--c:var(--milk);min-height:46px;padding:0 16px;border-radius:23px;border:1.5px solid var(--line);background:var(--ink);font-size:16px;font-weight:700;color:var(--dusk)}
+.chip[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:var(--ink)}
+.chips.butter .chip{--c:var(--butter)} .chips.mint .chip{--c:var(--mint)}
+
+/* sheet */
+#scrim{position:fixed;inset:0;background:rgb(10 7 26 / .62);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;max-width:520px;margin:0 auto;max-height:90vh;max-height:90dvh;overflow:auto;-webkit-overflow-scrolling:touch;
+  background:var(--ink-2);border-radius:30px 30px 0 0;border-top:1px solid var(--line);padding:10px 20px calc(env(safe-area-inset-bottom) + 20px);
+  transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);visibility:hidden}
+body.sheet-open #scrim{opacity:1;pointer-events:auto}
+body.sheet-open #sheet{transform:none;visibility:visible}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+.sheet-x{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:20px;background:var(--ink-3);color:var(--dusk);font-size:22px;line-height:1;display:grid;place-items:center}
+#sheet h2{padding-right:44px}
+#sheet h2{font-size:26px;margin:0 0 2px;letter-spacing:-.01em}
+#sheet h3{font-size:16px;color:var(--dusk);margin:20px 0 8px;font-weight:700}
+#sheet .sub{color:var(--dusk);margin:0;font-size:16px}
+#sheet .hint{color:var(--butter);font-size:15px;margin:10px 0 0}
+#sheet .actions{margin-top:24px;display:grid;gap:10px}
+#sheet .twin{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nappy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.nappy-grid button{min-height:92px;border-radius:24px;border:2px solid color-mix(in srgb,var(--mint) 45%,transparent);background:color-mix(in srgb,var(--mint) 8%,var(--ink));color:var(--mint);font-weight:700;font-size:17px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.nappy-grid .e{font-size:28px;line-height:1}
+.field{display:grid;gap:6px;margin:14px 0}
+.field label{font-weight:700;color:var(--dusk);font-size:15px}
+.field .rowx{display:flex;align-items:center;justify-content:space-between;gap:10px}
+input[type="datetime-local"].text,input[type="time"].text{max-width:none;-webkit-appearance:none;appearance:none;display:flex;align-items:center}
+
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 18px);transform:translate(-50%,16px);opacity:0;visibility:hidden;z-index:30;width:min(440px,calc(100% - 32px));
+  background:var(--milk);color:var(--ink);border-radius:20px;padding:12px 12px 12px 18px;display:flex;align-items:center;gap:12px;font-weight:600;font-size:16px;transition:transform .25s cubic-bezier(.2,.8,.2,1);box-shadow:0 10px 30px rgb(0 0 0 / .35)}
+#toast{transition:transform .22s cubic-bezier(.2,.8,.2,1),opacity .22s,visibility .22s}
+#toast.show{transform:translate(-50%,0);opacity:1;visibility:visible}
+#toast button{margin-left:auto;min-height:40px;padding:0 14px;border-radius:14px;background:var(--ink);color:var(--milk);font-weight:700;font-size:15px}
+#toast span{flex:1}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@media (min-height:780px){.moon{width:188px;height:188px}.side{min-height:140px}}
+@media (max-height:720px){.moon{width:118px;height:118px;margin-bottom:-2px}.hero-time{font-size:clamp(52px,16vw,64px)}.hero-sub{font-size:17px;margin-top:2px}
+  .facts{margin-top:8px;font-size:14.5px}.day{margin-top:10px}.day-sum{font-size:13.5px}.side{min-height:100px;border-radius:26px}.side .nm{font-size:26px}
+  .pill{min-height:54px}.controls{padding-top:12px}.row2{margin-top:10px}.sides{gap:10px}.row2{gap:10px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <button class="brand" data-act="go" data-to="now" aria-label="Home">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14.6 3.2A9 9 0 1 0 20.8 15 7.2 7.2 0 0 1 14.6 3.2Z"/></svg>
+      <span id="brandName">Milk Run</span>
+    </button>
+    <div class="top-actions">
+      <button class="icon" data-act="go" data-to="history" aria-label="History">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg>
+      </button>
+      <button class="icon" data-act="go" data-to="settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg>
+      </button>
+    </div>
+  </header>
+  <div id="notices"></div>
+
+  <main id="v-now" class="view" aria-label="Now">
+    <section class="hero" id="hero" aria-live="polite">
+      <svg class="moon" viewBox="0 0 200 200" aria-hidden="true">
+        <defs>
+          <radialGradient id="haloG"><stop offset="35%" style="stop-color:var(--hc,#f5e6c8);stop-opacity:.55"/><stop offset="100%" style="stop-color:var(--hc,#f5e6c8);stop-opacity:0"/></radialGradient>
+        </defs>
+        <circle class="halo" id="halo" cx="100" cy="100" r="98" fill="url(#haloG)" opacity=".2"/>
+        <circle class="disc" cx="100" cy="100" r="60"/>
+        <path class="lit" id="lit" d=""/>
+        <circle class="ring" id="ring" cx="100" cy="100" r="66"/>
+        <circle class="star" cx="30" cy="46" r="2.2" opacity=".8"/><circle class="star" cx="168" cy="38" r="1.6" opacity=".6"/>
+        <circle class="star" cx="178" cy="132" r="2.4" opacity=".75"/><circle class="star" cx="22" cy="150" r="1.5" opacity=".55"/>
+        <circle class="star" cx="150" cy="182" r="1.3" opacity=".5"/>
+      </svg>
+      <p class="hero-label" id="heroLabel"></p>
+      <p class="hero-time" id="heroTime"></p>
+      <p class="hero-sub" id="heroSub"></p>
+    </section>
+    <section class="facts" id="facts"></section>
+    <section class="day" id="day"></section>
+    <section class="controls" id="controls"></section>
+  </main>
+
+  <section id="v-history" class="view" hidden aria-label="History"></section>
+  <section id="v-settings" class="view set" hidden aria-label="Settings"></section>
+</div>
+
+<div id="scrim" data-act="close"></div>
+<div id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
+<div id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastBtn" hidden>Undo</button></div>
+
+<noscript><p style="padding:24px">Milk Run needs JavaScript turned on.</p></noscript>
+
+<script>
+'use strict';
+const VERSION = '1.0.0';
+const NTFY = 'https://ntfy.sh';
+const MIN = 6e4, HOUR = 36e5, DAY = 864e5;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+const rid = (n = 10) => { const b = crypto.getRandomValues(new Uint8Array(n)); return Array.from(b, x => B32[x & 31]).join('').toLowerCase(); };
+
+const ICON = {
+  bottle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.6 5V3.6a1.4 1.4 0 0 1 2.8 0V5"/><rect x="8.6" y="5" width="6.8" height="2.6" rx="1"/><rect x="7" y="7.6" width="10" height="14" rx="3.2"/><path d="M7 12h3.2M7 16h3.2"/></svg>',
+  nappy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5h18v2.8c0 5.2-4 9.7-9 9.7s-9-4.5-9-9.7z"/><path d="M3 9.6h3.5M17.5 9.6H21"/></svg>',
+  alarm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.4 1.6M4.5 4.5 2.8 6.2M19.5 4.5l1.7 1.7"/></svg>',
+};
+
+/* ---------- storage ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('milkrun.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('milkrun.' + k, JSON.stringify(v)); } catch (e) {} },
+};
+const DEFAULT_CFG = { name: '', every: 180, from: 'start', nappy: 180, alerts: true, lead: 0, nudge: 15, alarm: false, u: 0 };
+let S = store.get('state', null) || { v: 1, ev: {}, act: null, actU: 0, cfg: {}, al: { due: null, nudge: null, u: 0 } };
+S.cfg = Object.assign({}, DEFAULT_CFG, S.cfg);
+S.al = S.al || { due: null, nudge: null, u: 0 };
+let L = store.get('local', null) || {};
+L = Object.assign({ dev: rid(8), fam: '', seen: 0, dirty: false, synced: 0, err: '', welcomed: false, hideInstall: false }, L);
+function save() { store.set('state', S); store.set('local', L); }
+
+/* ---------- formatting ---------- */
+const fmt = {
+  hm: t => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+  dur(ms) {
+    const m = Math.round(ms / MIN);
+    if (m < 1) return 'under a minute';
+    const h = Math.floor(m / 60), r = m % 60;
+    return h ? (r ? `${h}h ${r}m` : `${h}h`) : `${r} min`;
+  },
+  short(ms) { const m = Math.max(0, Math.round(ms / MIN)), h = Math.floor(m / 60), r = m % 60; return h ? (r ? `${h}h ${r}m` : `${h}h`) : `${r} min`; },
+  mins(ms) { const m = Math.round(ms / MIN); return m < 1 ? 'under 1 min' : `${m} min`; },
+  clock(ms) { const s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${pad(m)}:${pad(s % 60)}`; },
+  every(min) { const h = Math.floor(min / 60), r = min % 60; return h ? (r ? `${h}h ${r}m` : `${h}h`) : `${r} min`; },
+  day(t) {
+    const a = new Date(t); a.setHours(0, 0, 0, 0); const b = new Date(); b.setHours(0, 0, 0, 0);
+    const d = Math.round((b - a) / DAY);
+    if (d === 0) return 'Today'; if (d === 1) return 'Yesterday';
+    return new Date(t).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  },
+  local(t) { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; },
+};
+const sideName = s => (s === 'L' ? 'left' : 'right');
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+/* ---------- model ---------- */
+const live = () => Object.values(S.ev).filter(e => !e.x);
+const feeds = () => live().filter(e => e.k === 'f').sort((a, b) => b.s - a.s);
+const nappies = () => live().filter(e => e.k === 'n').sort((a, b) => b.s - a.s);
+const sideMs = (g, side, now = Date.now()) => (g || []).filter(x => x[0] === side).reduce((t, x) => t + ((x[2] || now) - x[1]), 0);
+const running = () => (S.act ? S.act.g.find(x => !x[2]) : null);
+function nextDue() {
+  if (S.act) return null;
+  const f = feeds()[0];
+  if (!f) return null;
+  return (S.cfg.from === 'end' ? (f.e || f.s) : f.s) + S.cfg.every * MIN;
+}
+function nappyDue() { const n = nappies()[0]; return n ? n.s + S.cfg.nappy * MIN : null; }
+function suggestSide() {
+  for (const f of feeds()) if (f.g && f.g.length) return f.g[0][0] === 'L' ? 'R' : 'L';
+  return null;
+}
+function feedText(f, lower) {
+  const parts = [];
+  const order = [];
+  for (const x of f.g || []) if (!order.includes(x[0])) order.push(x[0]);
+  for (const s of order) parts.push(`${sideName(s)} ${fmt.mins(sideMs(f.g, s, f.e))}`);
+  let t = parts.length === 2 ? `${parts[0]} and ${parts[1]}` : parts[0] || '';
+  if (f.b) {
+    const milk = f.m === 'e' ? ' of expressed milk' : '';
+    t = t ? `${t}, then ${f.b} ml${milk}` : `${lower ? 'a ' : ''}${f.b} ml bottle${milk}`;
+  }
+  return lower ? t : cap(t);
+}
+function touchAct(now) { S.actU = now || Date.now(); }
+
+/* ---------- actions ---------- */
+let undoFn = null;
+function commit(wait = 250) { S.u = Date.now(); L.dirty = true; save(); render(); flushSoon(wait); }
+
+function tapSide(side) {
+  const now = Date.now();
+  if (!S.act) {
+    S.act = { i: rid(), g: [[side, now, 0]] };
+  } else {
+    const run = running();
+    if (run && run[0] === side) run[2] = now;
+    else { if (run) run[2] = now; S.act.g.push([side, now, 0]); }
+  }
+  touchAct(now);
+  commit();
+}
+function finishFeed(o) {
+  const at = o.at || Date.now(), prevAct = JSON.parse(JSON.stringify(S.act));
+  const g = S.act.g.map(x => [x[0], x[1], x[2] || at]);
+  const f = { i: S.act.i, k: 'f', s: g[0][1], e: at, g, b: o.ml || 0, m: o.milk || 'f', u: Date.now() };
+  S.ev[f.i] = f;
+  let n = null;
+  if (o.nappy) { n = { i: rid(), k: 'n', s: at, w: o.nappy !== 'd' ? 1 : 0, d: o.nappy !== 'w' ? 1 : 0, u: Date.now() }; S.ev[n.i] = n; }
+  S.act = null; touchAct();
+  commit();
+  const due = nextDue();
+  toast(`Feed saved.${due ? ` Next feed ${fmt.hm(due)}.` : ''}`, () => {
+    S.ev[f.i] = Object.assign({}, f, { x: 1, u: Date.now() });
+    if (n) S.ev[n.i] = Object.assign({}, n, { x: 1, u: Date.now() });
+    S.act = prevAct; touchAct(); commit();
+  });
+}
+function discardFeed() { S.act = null; touchAct(); commit(); toast('Feed discarded.'); }
+function addEvent(e, msg) {
+  e.u = Date.now(); S.ev[e.i] = e; commit();
+  const due = e.k === 'f' ? nextDue() : null;
+  toast(`${msg}${due ? ` Next feed ${fmt.hm(due)}.` : ''}`, () => { S.ev[e.i] = Object.assign({}, e, { x: 1, u: Date.now() }); commit(); });
+}
+const htmlCache = new WeakMap();
+function setHTML(el, html) { if (htmlCache.get(el) !== html) { el.innerHTML = html; htmlCache.set(el, html); } }
+function deleteEvent(id) {
+  const old = S.ev[id]; if (!old) return;
+  S.ev[id] = Object.assign({}, old, { x: 1, u: Date.now() }); commit();
+  toast(old.k === 'n' ? 'Nappy deleted.' : 'Feed deleted.', () => { S.ev[id] = Object.assign({}, old, { x: 0, u: Date.now() }); commit(); });
+}
+
+/* ---------- views ---------- */
+let view = 'now';
+function go(to) {
+  view = to;
+  for (const v of ['now', 'history', 'settings']) $('#v-' + v).hidden = v !== to;
+  window.scrollTo(0, 0);
+  render();
+}
+
+function render() {
+  $('#brandName').textContent = S.cfg.name.trim() || 'Milk Run';
+  renderNotices();
+  if (view === 'now') renderNow();
+  else if (view === 'history') renderHistory();
+  else renderSettings();
+}
+
+function renderNotices() {
+  const out = [];
+  const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  if (ios && !standalone && !L.hideInstall) out.push(L.joined
+    ? `<div class="notice"><span><b>You've joined.</b> Now tap Share, then <b>Add to Home Screen</b>. If the app opens empty, paste the invite code under Settings, Partner. <button class="btn" style="margin-top:8px;min-height:38px" data-act="copy" data-what="code">Copy invite code</button></span><button class="x" data-act="hideInstall" aria-label="Dismiss">×</button></div>`
+    : `<div class="notice"><span><b>Install it:</b> tap Share, then <b>Add to Home Screen</b>. It opens full screen and works offline.</span><button class="x" data-act="hideInstall" aria-label="Dismiss">×</button></div>`);
+  if (L.err) out.push(`<div class="notice warn"><span>${esc(L.err)}</span></div>`);
+  $('#notices').innerHTML = out.join('');
+}
+
+function renderNow() {
+  const now = Date.now();
+  const hero = $('#hero');
+  const f0 = feeds()[0];
+  const run = running();
+  let cls = 'hero', label = '', time = '', sub = '', phase = 0, ring = '';
+  if (S.act) {
+    cls += ' feeding' + (run ? ' running' : '');
+    const lm = sideMs(S.act.g, 'L', now), rm = sideMs(S.act.g, 'R', now);
+    label = run ? `Feeding on the ${sideName(run[0])}` : 'Paused';
+    time = fmt.clock(lm + rm);
+    sub = [lm || (run && run[0] === 'L') ? `Left ${fmt.clock(lm)}` : '', rm || (run && run[0] === 'R') ? `Right ${fmt.clock(rm)}` : ''].filter(Boolean).join(', ');
+    ring = run ? (run[0] === 'L' ? 'var(--apricot)' : 'var(--lilac)') : 'var(--dusk)';
+  } else if (f0) {
+    const due = nextDue(), left = due - now;
+    phase = Math.min(1, Math.max(0, 1 - left / (S.cfg.every * MIN)));
+    label = left > 0 ? 'Next feed' : 'Feed was due';
+    time = fmt.hm(due);
+    if (left > MIN) sub = `in ${fmt.short(left)}`;
+    else if (left > -MIN) sub = 'due now';
+    else { sub = `${fmt.short(-left)} ago`; cls += ' overdue'; }
+  }
+  if (hero.className !== cls) hero.className = cls;
+  const d = moonPath(phase);
+  if ($('#lit').getAttribute('d') !== d) $('#lit').setAttribute('d', d);
+  $('#halo').setAttribute('opacity', (S.act ? 0.12 : 0.12 + 0.4 * phase).toFixed(2));
+  hero.style.setProperty('--hc', cls.includes('overdue') ? '#ff8fa3' : '#f5e6c8');
+  $('#ring').style.stroke = ring;
+  $('#heroTime').textContent = time;
+  $('#heroTime').hidden = !time;
+  if (!S.act && !f0) {
+    $('#heroLabel').textContent = 'No feeds logged yet';
+    setHTML($('#heroSub'), `<span class="hero-empty">Tap Left or Right when a feed starts, or log a bottle.</span>`);
+  } else { $('#heroLabel').textContent = label; $('#heroSub').textContent = sub; htmlCache.delete($('#heroSub')); }
+
+  // facts
+  const facts = [];
+  if (S.act) {
+    const first = S.act.g[0];
+    facts.push(`<p>Started at ${fmt.hm(first[1])} on the ${sideName(first[0])}.</p>`);
+  } else if (f0) {
+    facts.push(`<p>Last feed ${S.cfg.from === 'end' ? 'ended' : 'started'} at ${fmt.hm(S.cfg.from === 'end' ? (f0.e || f0.s) : f0.s)}: ${esc(feedText(f0, true))}.</p>`);
+  }
+  const n0 = nappies()[0], nd = nappyDue(), due = nextDue();
+  if (n0) {
+    const ago = now - n0.s < MIN ? 'Nappy changed just now.' : `Nappy changed ${fmt.short(now - n0.s)} ago.`;
+    if (nd <= now) facts.push(`<p><span class="due">${ago} A change is due.</span></p>`);
+    else if (due && nd <= due + 15 * MIN) facts.push(`<p>${ago} Change it at the next feed.</p>`);
+    else if (S.act) facts.push(`<p>${ago}</p>`);
+    else facts.push(`<p>${ago} Next check around ${fmt.hm(nd)}.</p>`);
+  } else if (f0 || S.act) facts.push('<p>No nappy changes logged yet.</p>');
+  if (S.cfg.alarm && due && due > now + MIN) {
+    const url = `shortcuts://run-shortcut?name=${encodeURIComponent('Milk Run Alarm')}&input=text&text=${encodeURIComponent(fmt.hm(due - S.cfg.lead * MIN))}`;
+    facts.push(`<a class="alarm" href="${url}">${ICON.alarm}Set iPhone alarm for ${fmt.hm(due - S.cfg.lead * MIN)}</a>`);
+  }
+  setHTML($('#facts'), facts.join(''));
+
+  renderDay(now);
+
+  // controls
+  const sug = !S.act ? suggestSide() : null;
+  const sideBtn = s => {
+    const on = run && run[0] === s, t = S.act ? sideMs(S.act.g, s, now) : 0;
+    let inner = `<span class="nm">${s === 'L' ? 'Left' : 'Right'}</span>`;
+    if (S.act) {
+      const hint = on ? 'Tap to pause' : run ? 'Switch' : (S.act.g[S.act.g.length - 1][0] === s ? 'Resume' : (t ? 'Resume' : 'Start'));
+      inner += `<span class="tm" data-side-tm="${s}"></span><span class="hint">${hint}</span>`;
+    } else if (sug === s) inner = `<span class="tag">Start here</span>` + inner;
+    const aria = S.act ? (on ? `Pause ${sideName(s)}` : `Feed on the ${sideName(s)}`) : `Start feed on the ${sideName(s)}`;
+    return `<button class="side${on ? ' on' : ''}" data-act="side" data-side="${s}" aria-label="${aria}" aria-pressed="${on}">${inner}</button>`;
+  };
+  const row = S.act
+    ? `<div class="row2 wide"><button class="pill nappy" data-act="nappy">${ICON.nappy}Nappy</button><button class="pill primary" data-act="finish">Finish feed</button></div>`
+    : `<div class="row2"><button class="pill bottle" data-act="bottle">${ICON.bottle}Bottle</button><button class="pill nappy" data-act="nappy">${ICON.nappy}Nappy</button></div>`;
+  setHTML($('#controls'), `<div class="sides">${sideBtn('L')}${sideBtn('R')}</div>${row}`);
+  if (S.act) for (const el of document.querySelectorAll('[data-side-tm]')) el.textContent = fmt.clock(sideMs(S.act.g, el.dataset.sideTm, now));
+}
+
+function moonPath(f) {
+  const r = 60, c = 100;
+  if (f <= 0.004) return '';
+  if (f >= 0.996) return `M${c} ${c - r}A${r} ${r} 0 0 1 ${c} ${c + r}A${r} ${r} 0 0 1 ${c} ${c - r}Z`;
+  const rx = (Math.abs(1 - 2 * f) * r).toFixed(2);
+  return `M${c} ${c - r}A${r} ${r} 0 0 1 ${c} ${c + r}A${rx} ${r} 0 0 ${f < 0.5 ? 0 : 1} ${c} ${c - r}Z`;
+}
+
+function renderDay(now) {
+  const from = now - DAY;
+  const pos = t => ((t - from) / DAY * 100);
+  const marks = [];
+  for (const h of [0, 6, 12, 18]) {
+    const d = new Date(now); d.setHours(h, 0, 0, 0); let t = d.getTime(); if (t > now) t -= DAY;
+    marks.push({ t, h });
+  }
+  let bars = marks.map(m => `<i class="tick" style="left:${pos(m.t).toFixed(2)}%"></i>`).join('');
+  let ml = 0, nf = 0, br = 0, wet = 0, dirty = 0;
+  for (const e of live()) {
+    if (e.s < from || e.s > now) continue;
+    const x = pos(e.s).toFixed(2);
+    if (e.k === 'n') { bars += `<i class="m-nap" style="left:${x}%"></i>`; wet += e.w ? 1 : 0; dirty += e.d ? 1 : 0; continue; }
+    nf++; ml += e.b || 0;
+    const hasG = e.g && e.g.length;
+    if (hasG) {
+      br += sideMs(e.g, 'L', e.e) + sideMs(e.g, 'R', e.e);
+      bars += `<i class="m-breast" style="left:${x}%;width:${Math.max(1.2, ((e.e || e.s) - e.s) / DAY * 100).toFixed(2)}%"></i>`;
+      if (e.b) bars += `<i class="m-top" style="left:calc(${(pos(e.e || e.s)).toFixed(2)}% + 4px)"></i>`;
+    } else bars += `<i class="m-bottle" style="left:${x}%;width:1.4%"></i>`;
+  }
+  if (S.act) { const s = S.act.g[0][1]; bars += `<i class="m-now" style="left:${pos(s).toFixed(2)}%;width:${Math.max(1.2, (now - s) / DAY * 100).toFixed(2)}%"></i>`; }
+  const ticks = marks.map(m => `<span style="left:${Math.min(96, Math.max(4, pos(m.t))).toFixed(2)}%">${pad(m.h)}:00</span>`).join('');
+  const any = live().length || S.act;
+  let sum = '';
+  if (nf || wet || dirty) {
+    const bits = [];
+    if (br >= MIN) bits.push(`${fmt.short(br)} at the breast`);
+    if (ml) bits.push(`${ml} ml from bottles`);
+    sum = `Last 24 hours: ${plural(nf, 'feed')}${bits.length ? ` (${bits.join(', ')})` : ''}, ${wet} wet and ${dirty} dirty ${wet + dirty === 1 ? 'nappy' : 'nappies'}.`;
+  }
+  setHTML($('#day'), !any ? '' : `<div class="strip" role="img" aria-label="Feeds and nappies over the last 24 hours">${bars}</div><div class="ticks" aria-hidden="true">${ticks}</div>${sum ? `<p class="day-sum">${sum}</p>` : ''}`);
+}
+
+function tick() {
+  if (view !== 'now' || document.hidden) return;
+  renderNow();
+}
+
+/* ---------- history ---------- */
+function renderHistory() {
+  const evs = live().sort((a, b) => b.s - a.s);
+  const fl = evs.filter(e => e.k === 'f');
+  let html = `<h1 class="page-title">History</h1><div class="add-row"><button class="btn" data-act="addPast" data-kind="f">Add a feed</button><button class="btn" data-act="addPast" data-kind="b">Add a bottle</button><button class="btn" data-act="addPast" data-kind="n">Add a nappy</button></div>`;
+  if (!evs.length) { $('#v-history').innerHTML = html + `<p class="empty">Nothing logged yet. Feeds and nappies you log show up here, newest first.</p>`; return; }
+  let cur = '', group = [];
+  const flushGroup = () => {
+    if (!group.length) return;
+    const gf = group.filter(e => e.k === 'f'), ml = gf.reduce((t, e) => t + (e.b || 0), 0), nn = group.length - gf.length;
+    html += `<div class="daygroup"><div class="dayhead"><h2>${cur}</h2><span>${plural(gf.length, 'feed')}${ml ? `, ${ml} ml` : ''}, ${plural(nn, 'nappy').replace('nappys', 'nappies')}</span></div>`;
+    for (const e of group) html += entryRow(e, fl);
+    html += '</div>'; group = [];
+  };
+  for (const e of evs) { const d = fmt.day(e.s); if (d !== cur) { flushGroup(); cur = d; } group.push(e); }
+  flushGroup();
+  $('#v-history').innerHTML = html;
+}
+function entryRow(e, fl) {
+  let dot = 'n', ti = 'Nappy', de = '', gap = '';
+  if (e.k === 'n') de = e.w && e.d ? 'Wet and dirty' : e.d ? 'Dirty' : 'Wet';
+  else {
+    const hasG = e.g && e.g.length;
+    if (hasG) {
+      const l = sideMs(e.g, 'L', e.e), r = sideMs(e.g, 'R', e.e);
+      dot = l && r ? 'f' : l ? 'fl' : 'fr';
+      ti = e.b ? 'Breast and bottle' : 'Breastfeed';
+    } else { dot = 'b'; ti = e.m === 'e' ? 'Bottle (expressed)' : 'Bottle'; }
+    de = feedText(e);
+    const i = fl.indexOf(e), prev = fl[i + 1];
+    if (prev) gap = `+${fmt.short(e.s - prev.s)}`;
+  }
+  return `<button class="entry" data-act="edit" data-id="${e.i}"><span class="t">${fmt.hm(e.s)}</span><span class="dot ${dot}"></span><span class="d"><div class="ti">${ti}</div><div class="de">${esc(de)}</div></span><span class="gap">${gap}</span></button>`;
+}
+
+/* ---------- settings ---------- */
+let K = null; // {fam, key, dt, at}
+function renderSettings() {
+  const c = S.cfg;
+  const chipset = (name, val, opts) => `<div class="chips" data-group="${name}">${opts.map(([v, l]) => `<button class="chip" data-act="cfgChip" data-k="${name}" data-v="${v}" aria-pressed="${String(val) === String(v)}">${l}</button>`).join('')}</div>`;
+  const synced = L.synced ? `Last synced ${Date.now() - L.synced < MIN ? 'just now' : fmt.short(Date.now() - L.synced) + ' ago'}.` : 'Not synced yet.';
+  const topic = K ? K.at : '…';
+  $('#v-settings').innerHTML = `
+  <h1 class="page-title">Settings</h1>
+  <h2>Baby</h2>
+  <div class="row"><label for="cfgName">Name</label><input id="cfgName" class="text" type="text" autocomplete="off" placeholder="Optional" value="${esc(c.name)}" maxlength="24"></div>
+  <p class="note">Shown at the top and in alerts.</p>
+
+  <h2>Feeds</h2>
+  <div class="row"><span class="lbl">Feed every</span><div class="step"><button data-act="cfgStep" data-k="every" data-d="-15" aria-label="Shorter">−</button><output>${fmt.every(c.every)}</output><button data-act="cfgStep" data-k="every" data-d="15" aria-label="Longer">+</button></div></div>
+  <div class="row"><span class="lbl">Count from</span>${chipset('from', c.from, [['start', 'Start'], ['end', 'End']])}</div>
+  <div class="row"><span class="lbl">Nappy check every</span><div class="step"><button data-act="cfgStep" data-k="nappy" data-d="-30" aria-label="Shorter">−</button><output>${fmt.every(c.nappy)}</output><button data-act="cfgStep" data-k="nappy" data-d="30" aria-label="Longer">+</button></div></div>
+  <p class="note">Use the gap your midwife or health visitor recommends. Feeds are usually counted from the start of one to the start of the next.</p>
+
+  <h2>Phone alerts</h2>
+  <div class="row"><label for="cfgAlerts">Alert when a feed is due</label><span class="sw"><input id="cfgAlerts" type="checkbox" ${c.alerts ? 'checked' : ''}><span></span></span></div>
+  <h3 class="lead" style="margin:14px 0 8px">Alert me</h3>
+  ${chipset('lead', c.lead, [[0, 'When due'], [10, '10 min before'], [15, '15 min before'], [30, '30 min before']])}
+  <h3 class="lead" style="margin:14px 0 8px">If no feed is logged, remind again</h3>
+  ${chipset('nudge', c.nudge, [[0, 'Off'], [10, 'After 10 min'], [15, 'After 15 min'], [30, 'After 30 min']])}
+  <p class="note">Alerts arrive through ntfy, a free notifications app. Set it up once on each phone that should get them:</p>
+  <ol>
+    <li>Install <b>ntfy</b> from the <a href="https://apps.apple.com/gb/app/ntfy/id1625396347" target="_blank" rel="noopener">App Store</a>.</li>
+    <li>In ntfy, tap <b>+</b>, paste this topic and tap Subscribe:
+      <div class="code"><output id="alertTopic">${esc(topic)}</output><button class="btn" data-act="copy" data-what="topic">Copy</button></div></li>
+    <li>Allow notifications, including Time Sensitive ones.</li>
+  </ol>
+  <div class="btns"><button class="btn primary" data-act="testAlert">Send a test alert</button></div>
+  <p class="note">If you use a Sleep or Do Not Disturb focus at night, add ntfy to its allowed apps so alerts still get through.</p>
+
+  <h2>Partner</h2>
+  <p class="note">Share Milk Run so both phones show the same feeds and either of you can log. Entries are end-to-end encrypted with your family code; only phones with the code can read them.</p>
+  <div class="code"><output id="famCode">${esc(prettyCode(L.fam))}</output><button class="btn" data-act="share">Share invite</button></div>
+  <p class="note">${esc(synced)}</p>
+  <div class="field"><label for="joinCode">Have an invite code from your partner?</label>
+    <div class="code"><input id="joinCode" class="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX"><button class="btn" data-act="paste">Paste</button></div>
+    <button class="btn" data-act="join">Join</button>
+  </div>
+
+  <h2>iPhone alarm</h2>
+  <div class="row"><label for="cfgAlarm">Show a Set alarm button</label><span class="sw"><input id="cfgAlarm" type="checkbox" ${c.alarm ? 'checked' : ''}><span></span></span></div>
+  <p class="note">A notification can be slept through. An alarm in the Clock app rings even when the phone is on silent. One-time setup:</p>
+  <ol>
+    <li>Open <b>Shortcuts</b>, tap <b>+</b> and add the action <b>Create Alarm</b>.</li>
+    <li>Tap its time, choose <b>Shortcut Input</b>, and set the label to Milk Run.</li>
+    <li>Rename the shortcut to <b>Milk Run Alarm</b> and tap Done.</li>
+  </ol>
+  <p class="note">After a feed, tap Set alarm on the home screen and the alarm is added for the next feed.</p>
+
+  <h2>Your data</h2>
+  <div class="btns"><button class="btn" data-act="export" data-fmt="csv">Export CSV</button><button class="btn" data-act="export" data-fmt="json">Back up</button><button class="btn" data-act="restore">Restore</button></div>
+  <div class="btns"><button class="btn danger" data-act="erase">Erase this phone</button></div>
+  <input id="restoreFile" type="file" accept="application/json,.json" hidden>
+  <p class="foot">Milk Run ${VERSION}. Entries live on your phones. Not medical advice.</p>`;
+}
+function prettyCode(c) { return (c || '').replace(/(.{4})(?=.)/g, '$1-'); }
+function normCode(s) {
+  return (s || '').toUpperCase().replace(/[IL]/g, '1').replace(/O/g, '0').replace(/[^0-9A-HJKMNP-TV-Z]/g, '');
+}
+function newCode() { const b = crypto.getRandomValues(new Uint8Array(16)); return b32(b).slice(0, 20); }
+function b32(bytes) { let bits = 0, val = 0, out = ''; for (const b of bytes) { val = (val << 8) | b; bits += 8; while (bits >= 5) { bits -= 5; out += B32[(val >> bits) & 31]; } val &= (1 << bits) - 1; } if (bits) out += B32[(val << (5 - bits)) & 31]; return out; }
+
+/* ---------- sheets ---------- */
+let F = {};
+function openSheet(html) {
+  $('#sheet').innerHTML = `<div class="grab" aria-hidden="true"></div><button class="sheet-x" data-act="close" aria-label="Close">×</button>${html}`;
+  document.body.classList.add('sheet-open');
+  $('#sheet').scrollTop = 0;
+}
+function closeSheet() { document.body.classList.remove('sheet-open'); F = {}; }
+const chips = (k, opts, cls = '') => `<div class="chips ${cls}">${opts.map(([v, l]) => `<button class="chip" data-act="f" data-k="${k}" data-v="${v}" aria-pressed="${String(F[k]) === String(v)}">${l}</button>`).join('')}</div>`;
+const mlStep = () => `<div class="step" style="margin-top:10px"><button data-act="fStep" data-k="ml" data-d="-10" aria-label="Less">−</button><output id="mlOut">${F.ml ? F.ml + ' ml' : 'None'}</output><button data-act="fStep" data-k="ml" data-d="10" aria-label="More">+</button></div>`;
+const lastMilk = () => { const f = feeds().find(x => x.b); return f ? f.m || 'f' : 'f'; };
+
+function openFinish() {
+  const at = Date.now();
+  const lastTop = feeds().find(f => f.g && f.g.length);
+  F = { type: 'finish', at, ml: lastTop && lastTop.b ? lastTop.b : 0, milk: lastMilk(), nappy: '' };
+  const tmp = { g: S.act.g.map(x => [x[0], x[1], x[2] || at]), b: 0 };
+  sheetFinish(feedText(Object.assign(tmp, { e: at })));
+}
+function sheetFinish(summary) {
+  F.summary = summary;
+  openSheet(`<h2 id="sheetTitle">Feed finished</h2><p class="sub">${esc(summary || 'No breast time recorded')}.</p>
+    <h3>Bottle top-up in ml</h3>${chips('ml', [[0, 'None'], [30, '30'], [60, '60'], [90, '90'], [120, '120']], 'butter')}${mlStep()}
+    <div ${F.ml ? '' : 'hidden'} id="milkRow"><h3>Milk</h3>${chips('milk', [['f', 'Formula'], ['e', 'Expressed']], 'butter')}</div>
+    <h3>Nappy changed?</h3>${chips('nappy', [['', 'No'], ['w', 'Wet'], ['d', 'Dirty'], ['b', 'Both']], 'mint')}
+    <div class="actions"><button class="btn primary block" data-act="saveFeed">Save feed</button>
+    <div class="twin"><button class="btn" data-act="close">Keep timing</button><button class="btn danger" data-act="discard">Discard feed</button></div></div>`);
+}
+function openBottle() {
+  F = { type: 'bottle', ml: (feeds().find(f => f.b) || {}).b || 60, milk: lastMilk(), when: 0 };
+  sheetBottle();
+}
+function scoopHint() { return F.ml && F.ml % 30 === 0 ? `Kendamil: ${plural(F.ml / 30, 'level scoop')} to ${F.ml} ml of water.` : ''; }
+function sheetBottle() {
+  openSheet(`<h2 id="sheetTitle">Bottle feed</h2><p class="sub">How much did baby drink?</p>
+    <h3>Amount in ml</h3>${chips('ml', [[30, '30'], [60, '60'], [90, '90'], [120, '120'], [150, '150']], 'butter')}${mlStep()}
+    <p class="hint" id="scoops">${scoopHint()}</p>
+    <h3>Milk</h3>${chips('milk', [['f', 'Formula'], ['e', 'Expressed']], 'butter')}
+    <h3>When</h3>${chips('when', [[0, 'Now'], [15, '15 min ago'], [30, '30 min ago'], [60, '1 hour ago']])}
+    <div class="actions"><button class="btn primary block" data-act="saveBottle">Save bottle</button></div>`);
+}
+function openNappy() {
+  F = { type: 'nappy', when: 0 };
+  openSheet(`<h2 id="sheetTitle">Nappy change</h2><p class="sub">Tap what you found to save it.</p>
+    <h3>When</h3>${chips('when', [[0, 'Now'], [15, '15 min ago'], [30, '30 min ago']])}
+    <div class="nappy-grid" style="margin-top:16px"><button data-act="saveNappy" data-v="w"><span class="e">💧</span>Wet</button><button data-act="saveNappy" data-v="d"><span class="e">💩</span>Dirty</button><button data-act="saveNappy" data-v="b"><span class="e">💧💩</span>Both</button></div>`);
+}
+function openEdit(e, isNew) {
+  const hasG = e.g && e.g.length;
+  const lm = Math.round(sideMs(e.g, 'L', e.e) / MIN), rm = Math.round(sideMs(e.g, 'R', e.e) / MIN);
+  F = { type: 'edit', id: e.i, isNew, k: e.k, s: e.s, lm, rm, lm0: lm, rm0: rm, s0: e.s,
+    first: hasG ? e.g[0][0] : 'L', ml: e.b || 0, milk: e.m || 'f', w: e.w ? 1 : 0, d: e.d ? 1 : 0, bottleOnly: e.k === 'f' && !hasG && !isNew ? 1 : e.bottleOnly || 0 };
+  sheetEdit();
+}
+function sheetEdit() {
+  const isN = F.k === 'n';
+  const title = (F.isNew ? 'Add ' : 'Edit ') + (isN ? 'nappy' : F.bottleOnly ? 'bottle' : 'feed');
+  const stepper = (k, d, unit) => `<div class="step"><button data-act="fStep" data-k="${k}" data-d="-${d}" aria-label="Less">−</button><output id="out-${k}">${F[k]} ${unit}</output><button data-act="fStep" data-k="${k}" data-d="${d}" aria-label="More">+</button></div>`;
+  let body = `<div class="field"><label for="editTime">${isN ? 'Time' : 'Started'}</label><input id="editTime" class="text" type="datetime-local" value="${fmt.local(F.s)}"></div>`;
+  if (isN) body += `<h3>What was in it?</h3>${chips('w', [[1, '💧 Wet'], [0, 'Not wet']], 'mint')}<div style="height:8px"></div>${chips('d', [[1, '💩 Dirty'], [0, 'Not dirty']], 'mint')}`;
+  else {
+    if (!F.bottleOnly) body += `<div class="field"><div class="rowx"><label>Left</label>${stepper('lm', 1, 'min')}</div></div><div class="field"><div class="rowx"><label>Right</label>${stepper('rm', 1, 'min')}</div></div>`;
+    body += `<div class="field"><div class="rowx"><label>Bottle</label>${stepper('ml', 10, 'ml')}</div></div><h3>Milk</h3>${chips('milk', [['f', 'Formula'], ['e', 'Expressed']], 'butter')}`;
+  }
+  body += `<div class="actions"><button class="btn primary block" data-act="saveEdit">${F.isNew ? 'Add' : 'Save changes'}</button>${F.isNew ? '' : `<button class="btn danger" data-act="del" data-id="${F.id}">Delete ${isN ? 'nappy' : 'feed'}</button>`}</div>`;
+  openSheet(`<h2 id="sheetTitle">${title}</h2>${body}`);
+}
+function saveEdit() {
+  const tv = $('#editTime').value;
+  const s = tv ? new Date(tv).getTime() : F.s;
+  if (!isFinite(s)) return toast('Pick a valid time.');
+  const old = S.ev[F.id] || {};
+  let e;
+  if (F.k === 'n') {
+    if (!F.w && !F.d) return toast('Choose wet, dirty or both.');
+    e = { i: F.id, k: 'n', s, w: F.w ? 1 : 0, d: F.d ? 1 : 0 };
+  } else {
+    let g = [];
+    if (!F.isNew && old.g && old.g.length && F.lm === F.lm0 && F.rm === F.rm0) {
+      g = old.g.map(x => [x[0], x[1] + (s - old.s), x[2] + (s - old.s)]);
+    } else if (!F.bottleOnly) {
+      const order = F.first === 'R' ? ['R', 'L'] : ['L', 'R'];
+      let t = s;
+      for (const side of order) { const m = side === 'L' ? F.lm : F.rm; if (m > 0) { g.push([side, t, t + m * MIN]); t += m * MIN; } }
+    }
+    if (!g.length && !F.ml) return toast('Add breast time or a bottle amount.');
+    const end = g.length ? Math.max(g[g.length - 1][2], old.e && old.g && old.g.length ? old.e + (s - old.s) : 0) : s;
+    e = { i: F.id, k: 'f', s, e: end, g, b: F.ml, m: F.milk };
+  }
+  closeSheet();
+  if (F.isNew) addEvent(e, e.k === 'n' ? 'Nappy added.' : 'Feed added.');
+  else { const prev = S.ev[e.i]; e.u = Date.now(); S.ev[e.i] = e; commit(); toast('Changes saved.', () => { S.ev[e.i] = Object.assign({}, prev, { u: Date.now() }); commit(); }); }
+}
+
+/* ---------- toast ---------- */
+let toastT = null;
+function toast(msg, undo) {
+  $('#toastMsg').textContent = msg;
+  const b = $('#toastBtn'); b.hidden = !undo; undoFn = undo || null;
+  const t = $('#toast'), c = $('#controls');
+  if (view === 'now' && c.offsetHeight) { t.style.bottom = `${Math.max(18, innerHeight - c.getBoundingClientRect().top + 8)}px`; }
+  else t.style.bottom = '';
+  t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => { $('#toast').classList.remove('show'); undoFn = null; }, undo ? 6000 : 2800);
+}
+$('#toastBtn').addEventListener('click', () => { const f = undoFn; undoFn = null; $('#toast').classList.remove('show'); if (f) { f(); setTimeout(() => toast('Undone.'), 260); } });
+
+/* ---------- events ---------- */
+const ACT = {
+  go: el => { closeSheet(); go(el.dataset.to); },
+  side: el => tapSide(el.dataset.side),
+  finish: () => openFinish(),
+  bottle: () => openBottle(),
+  nappy: () => openNappy(),
+  close: () => closeSheet(),
+  hideInstall: () => { L.hideInstall = true; save(); renderNotices(); },
+  f: el => {
+    const k = el.dataset.k; let v = el.dataset.v;
+    if (['ml', 'when', 'w', 'd'].includes(k)) v = Number(v);
+    F[k] = v;
+    el.parentElement.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(c === el)));
+    if (k === 'ml') { const o = $('#mlOut') || $('#out-ml'); if (o) o.textContent = F.ml ? F.ml + ' ml' : (F.type === 'edit' ? '0 ml' : 'None'); const mr = $('#milkRow'); if (mr) mr.hidden = !F.ml; const sc = $('#scoops'); if (sc) sc.textContent = scoopHint(); }
+  },
+  fStep: el => {
+    const k = el.dataset.k, d = Number(el.dataset.d), max = k === 'ml' ? 400 : 120;
+    F[k] = Math.min(max, Math.max(0, (F[k] || 0) + d));
+    const unit = k === 'ml' ? 'ml' : 'min';
+    const o = $('#out-' + k) || (k === 'ml' ? $('#mlOut') : null);
+    if (o) o.textContent = F.type !== 'edit' && k === 'ml' && !F.ml ? 'None' : `${F[k]} ${unit}`;
+    if (k === 'ml') {
+      document.querySelectorAll('#sheet .chip[data-k="ml"]').forEach(c => c.setAttribute('aria-pressed', String(Number(c.dataset.v) === F.ml)));
+      const mr = $('#milkRow'); if (mr) mr.hidden = !F.ml; const sc = $('#scoops'); if (sc) sc.textContent = scoopHint();
+    }
+  },
+  saveFeed: () => { const o = { at: F.at, ml: F.ml, milk: F.milk, nappy: F.nappy }; closeSheet(); finishFeed(o); },
+  discard: () => {
+    if (F.confirmDiscard) { closeSheet(); discardFeed(); return; }
+    F.confirmDiscard = true; const b = document.querySelector('#sheet [data-act="discard"]'); b.textContent = 'Tap again to discard';
+  },
+  saveBottle: () => {
+    if (!F.ml) return toast('Choose an amount.');
+    const s = Date.now() - (F.when || 0) * MIN; const e = { i: rid(), k: 'f', s, e: s, g: [], b: F.ml, m: F.milk };
+    closeSheet(); addEvent(e, 'Bottle saved.');
+  },
+  saveNappy: el => {
+    const v = el.dataset.v, s = Date.now() - (F.when || 0) * MIN;
+    const e = { i: rid(), k: 'n', s, w: v !== 'd' ? 1 : 0, d: v !== 'w' ? 1 : 0 };
+    closeSheet(); addEvent(e, 'Nappy saved.');
+  },
+  edit: el => { const e = S.ev[el.dataset.id]; if (e) openEdit(e, false); },
+  addPast: el => {
+    const kind = el.dataset.kind, s = Date.now() - 30 * MIN;
+    if (kind === 'n') openEdit({ i: rid(), k: 'n', s, w: 1, d: 0 }, true);
+    else if (kind === 'b') openEdit({ i: rid(), k: 'f', s, e: s, g: [], b: 60, m: lastMilk(), bottleOnly: 1 }, true);
+    else openEdit({ i: rid(), k: 'f', s, e: s + 20 * MIN, g: [['L', s, s + 10 * MIN], ['R', s + 10 * MIN, s + 20 * MIN]], b: 0, m: lastMilk() }, true);
+  },
+  saveEdit: () => saveEdit(),
+  del: el => {
+    if (!F.confirmDel) { F.confirmDel = true; el.textContent = 'Tap again to delete'; return; }
+    closeSheet(); deleteEvent(el.dataset.id);
+  },
+  cfgStep: el => {
+    const k = el.dataset.k, d = Number(el.dataset.d);
+    const [lo, hi] = k === 'every' ? [60, 360] : [60, 480];
+    S.cfg[k] = Math.min(hi, Math.max(lo, S.cfg[k] + d)); S.cfg.u = Date.now(); commit(1500);
+  },
+  cfgChip: el => {
+    const k = el.dataset.k; let v = el.dataset.v; if (k !== 'from') v = Number(v);
+    S.cfg[k] = v; S.cfg.u = Date.now(); commit(1500);
+  },
+  copy: async el => { const t = el.dataset.what === 'topic' ? (K && K.at) : prettyCode(L.fam); if (t && await copyText(t)) toast('Copied.'); },
+  testAlert: () => testAlert(),
+  share: () => shareInvite(),
+  paste: async () => { try { const t = await navigator.clipboard.readText(); $('#joinCode').value = t.trim(); } catch (e) { toast('Paste it into the box instead.'); } },
+  join: () => joinFamily($('#joinCode').value),
+  export: el => exportData(el.dataset.fmt),
+  restore: () => $('#restoreFile').click(),
+  erase: () => openSheet(`<h2 id="sheetTitle">Erase this phone?</h2><p class="sub">This removes every entry and setting from this phone. Your partner's phone keeps its copy.</p><div class="actions"><button class="btn danger block" data-act="eraseYes">Erase this phone</button><button class="btn" data-act="close">Keep everything</button></div>`),
+  eraseYes: () => { try { Object.keys(localStorage).filter(k => k.startsWith('milkrun.')).forEach(k => localStorage.removeItem(k)); } catch (e) {} location.replace(location.pathname); },
+  welcomeStart: () => { L.welcomed = true; save(); closeSheet(); },
+  welcomeJoin: () => { const v = $('#welcomeCode').value; joinFamily(v, true); },
+  welcomePaste: async () => { try { $('#welcomeCode').value = (await navigator.clipboard.readText()).trim(); } catch (e) { toast('Paste it into the box instead.'); } },
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const fn = ACT[el.dataset.act];
+  if (fn) { e.preventDefault(); fn(el, e); }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id === 'cfgAlerts' || t.id === 'cfgAlarm') { S.cfg[t.id === 'cfgAlerts' ? 'alerts' : 'alarm'] = t.checked; S.cfg.u = Date.now(); commit(); }
+  else if (t.id === 'cfgName') { S.cfg.name = t.value.trim().slice(0, 24); S.cfg.u = Date.now(); commit(); }
+  else if (t.id === 'restoreFile' && t.files[0]) restoreData(t.files[0]);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch (e) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (x) {} ta.remove(); if (!ok) toast('Press and hold to copy it.'); return ok; }
+}
+
+/* ---------- crypto + sync (ntfy.sh relay, end-to-end encrypted) ---------- */
+const enc = new TextEncoder(), dec = new TextDecoder();
+const sha = async s => new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(s)));
+const b64u = {
+  e: u8 => { let s = ''; for (let i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); },
+  d: s => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return Uint8Array.from(atob(s), c => c.charCodeAt(0)); },
+};
+async function keys() {
+  if (!L.fam) return null;
+  if (K && K.fam === L.fam) return K;
+  const raw = await sha('milkrun/key/' + L.fam);
+  const key = await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  K = { fam: L.fam, key, dt: 'mrd-' + b32(await sha('milkrun/data/' + L.fam)).slice(0, 26).toLowerCase(), at: 'milkrun-' + b32(await sha('milkrun/alert/' + L.fam)).slice(0, 16).toLowerCase() };
+  return K;
+}
+async function zip(u8, inflate) {
+  const s = inflate ? new DecompressionStream('deflate') : new CompressionStream('deflate');
+  return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(s)).arrayBuffer());
+}
+const canZip = typeof CompressionStream === 'function' && typeof DecompressionStream === 'function';
+async function seal(obj, k) {
+  let data = enc.encode(JSON.stringify(obj)), z = 'p';
+  if (canZip) { data = await zip(data); z = 'z'; }
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k.key, data));
+  return `mr1${z}.${b64u.e(iv)}.${b64u.e(ct)}`;
+}
+async function unseal(str, k) {
+  const [h, iv, ct] = str.split('.');
+  if (!h || !h.startsWith('mr1') || !iv || !ct) throw new Error('not ours');
+  let data = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64u.d(iv) }, k.key, b64u.d(ct)));
+  if (h[3] === 'z') data = await zip(data, true);
+  return JSON.parse(dec.decode(data));
+}
+function merge(o) {
+  let ch = false;
+  for (const e of o.ev || []) { const c = S.ev[e.i]; if (!c || (e.u || 0) > (c.u || 0)) { S.ev[e.i] = e; ch = true; } }
+  if ((o.actU || 0) > (S.actU || 0)) { S.act = o.act || null; S.actU = o.actU; ch = true; }
+  if (o.cfg && (o.cfg.u || 0) > (S.cfg.u || 0)) { S.cfg = Object.assign({}, DEFAULT_CFG, o.cfg); ch = true; }
+  if (o.al && (o.al.u || 0) > (S.al.u || 0)) { S.al = o.al; ch = true; }
+  return ch;
+}
+async function snapshot(k) {
+  const now = Date.now();
+  for (const hrs of [120, 72, 48, 24, 12, 6]) {
+    const cut = now - hrs * HOUR;
+    const ev = Object.values(S.ev).filter(e => e.s >= cut || (e.u || 0) >= cut);
+    const msg = await seal({ v: 1, d: L.dev, t: now, ev, act: S.act, actU: S.actU, cfg: S.cfg, al: S.al }, k);
+    if (msg.length < 3900) return msg;
+  }
+  throw new Error('Sync payload too large');
+}
+function netError(r, body) {
+  if (r && r.status === 429) return 'Sync and alerts are paused: the free ntfy limit for your connection was reached. They resume automatically.';
+  return navigator.onLine ? 'Couldn’t reach the sync service. Retrying.' : 'Offline. Changes will sync when you’re back online.';
+}
+
+let pulling = false;
+async function pull() {
+  if (pulling || !L.fam) return;
+  pulling = true;
+  try {
+    const k = await keys();
+    const since = L.seen ? String(L.seen - 2) : '12h';
+    const r = await fetch(`${NTFY}/${k.dt}/json?poll=1&since=${since}`, { cache: 'no-store' });
+    if (!r.ok) throw Object.assign(new Error('pull'), { r });
+    let ch = false;
+    for (const line of (await r.text()).split('\n')) {
+      if (!line.trim()) continue;
+      let m; try { m = JSON.parse(line); } catch (e) { continue; }
+      if (m.event !== 'message' || !m.message) continue;
+      if (m.time > L.seen) L.seen = m.time;
+      try { const o = await unseal(m.message, k); if (o.d !== L.dev && merge(o)) ch = true; } catch (e) {}
+    }
+    if (L.err && !L.dirty) L.err = '';
+    L.synced = Date.now(); save();
+    if (ch) render(); else if (view === 'settings') renderSettings();
+  } catch (e) { L.err = netError(e.r); save(); renderNotices(); }
+  finally { pulling = false; }
+}
+
+function alertPlan() {
+  const out = {};
+  if (S.act || !S.cfg.alerts) return out;
+  const due = nextDue(); if (!due) return out;
+  const nm = S.cfg.name.trim(), who = nm ? ` for ${nm}` : '';
+  const f = feeds()[0], side = suggestSide(), nd = nappyDue();
+  const lines = [`Last feed ${S.cfg.from === 'end' ? 'ended' : 'started'} at ${fmt.hm(S.cfg.from === 'end' ? (f.e || f.s) : f.s)}.`];
+  if (side) lines.push(`Start on the ${sideName(side)}.`);
+  if (nd && nd <= due + 15 * MIN) lines.push('Nappy change due too.');
+  out.due = { at: due - S.cfg.lead * MIN, title: S.cfg.lead ? `Feed due at ${fmt.hm(due)}${who}` : `Feed time${who}`, body: lines.join(' ') };
+  if (S.cfg.nudge) out.nudge = { at: due + S.cfg.nudge * MIN, title: `Feed overdue${who}`, body: `It was due at ${fmt.hm(due)} and no feed has been logged yet.` };
+  return out;
+}
+async function ntfyPublish(k, seq, w) {
+  const body = { topic: k.at, title: w.title, message: w.body, priority: 5, tags: ['baby_bottle'] };
+  if (seq) body.sequence_id = seq;
+  if (w.at) body.delay = String(Math.floor(w.at / 1000));
+  const r = await fetch(NTFY + '/', { method: 'POST', body: JSON.stringify(body), keepalive: true });
+  if (!r.ok) throw Object.assign(new Error('publish'), { r });
+}
+async function ntfyCancel(k, seq) {
+  const r = await fetch(`${NTFY}/${k.at}/${seq}/delete`, { keepalive: true, cache: 'no-store' });
+  if (!r.ok && r.status !== 404) throw Object.assign(new Error('cancel'), { r });
+}
+
+let flushT = null, flushing = false, again = false;
+function flushSoon(ms) { clearTimeout(flushT); flushT = setTimeout(flush, ms); }
+async function flush() {
+  if (!L.fam) return;
+  if (flushing) { again = true; return; }
+  flushing = true;
+  try {
+    const k = await keys(), now = Date.now(), want = alertPlan(), jobs = [];
+    for (const seq of ['due', 'nudge']) {
+      const w = want[seq] && want[seq].at > now + 15000 ? want[seq] : null;
+      const have = S.al[seq], pending = have && have.at > now;
+      const sig = w ? `${w.at}|${w.title}|${w.body}` : '';
+      if (w && (!pending || have.sig !== sig)) jobs.push(ntfyPublish(k, seq, w).then(() => { S.al[seq] = { at: w.at, sig }; S.al.u = Date.now(); L.dirty = true; }));
+      else if (!w && pending) jobs.push(ntfyCancel(k, seq).then(() => { S.al[seq] = null; S.al.u = Date.now(); L.dirty = true; }));
+    }
+    const res = await Promise.allSettled(jobs);
+    const failed = res.find(x => x.status === 'rejected');
+    if (L.dirty) {
+      L.dirty = false;
+      try {
+        const msg = await snapshot(k);
+        const r = await fetch(`${NTFY}/${k.dt}?firebase=no`, { method: 'POST', body: msg, keepalive: true });
+        if (!r.ok) throw Object.assign(new Error('sync'), { r });
+      } catch (e) { L.dirty = true; throw e; }
+    }
+    if (failed) throw failed.reason;
+    L.err = ''; L.synced = Date.now();
+  } catch (e) {
+    L.err = netError(e.r);
+    flushSoon(30000);
+  } finally {
+    flushing = false; save(); renderNotices();
+    if (view === 'settings') renderSettings();
+    if (again) { again = false; flushSoon(300); }
+  }
+}
+async function testAlert() {
+  try {
+    const k = await keys();
+    await ntfyPublish(k, '', { title: 'Milk Run test', body: 'Alerts are working. You’ll get one like this when a feed is due.' });
+    toast('Test alert sent. It should arrive in a few seconds.');
+  } catch (e) { toast(e.r && e.r.status === 429 ? 'ntfy’s free limit was reached. Try again later.' : 'Couldn’t send. Check your connection.'); }
+}
+
+async function joinFamily(raw, fromWelcome) {
+  const code = normCode(raw);
+  if (code.length !== 20) return toast('That code should be 20 letters and numbers.');
+  if (code === L.fam) { toast('You’re already sharing with this code.'); if (fromWelcome) { L.welcomed = true; save(); closeSheet(); } return; }
+  L.fam = code; L.seen = 0; K = null; L.welcomed = true;
+  S.al = { due: null, nudge: null, u: 0 };
+  L.dirty = live().length > 0;
+  save(); closeSheet();
+  toast('Joined. Fetching feeds…');
+  await pull(); render(); flushSoon(200);
+}
+async function shareInvite() {
+  const url = `${location.origin}${location.pathname}#join=${prettyCode(L.fam)}`;
+  const text = `Join our Milk Run so we can both track feeds. Open this link on your iPhone, or paste the code ${prettyCode(L.fam)} in Settings, under Partner.`;
+  if (navigator.share) { try { await navigator.share({ title: 'Milk Run', text, url }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+  if (await copyText(`${text}\n${url}`)) toast('Invite copied. Send it to your partner.');
+}
+
+/* ---------- import/export ---------- */
+async function shareOrDownload(name, type, content) {
+  const file = new File([content], name, { type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: name }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function exportData(kind) {
+  const stamp = new Date().toISOString().slice(0, 10);
+  if (kind === 'json') return shareOrDownload(`milk-run-backup-${stamp}.json`, 'application/json', JSON.stringify({ app: 'milkrun', v: 1, exported: new Date().toISOString(), cfg: S.cfg, ev: Object.values(S.ev) }, null, 1));
+  const iso = t => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  const rows = [['type', 'start', 'end', 'left_min', 'right_min', 'bottle_ml', 'milk', 'wet', 'dirty']];
+  for (const e of live().sort((a, b) => a.s - b.s)) {
+    if (e.k === 'n') rows.push(['nappy', iso(e.s), '', '', '', '', '', e.w, e.d]);
+    else rows.push([e.g && e.g.length ? 'feed' : 'bottle', iso(e.s), e.g && e.g.length ? iso(e.e) : '', Math.round(sideMs(e.g, 'L', e.e) / MIN), Math.round(sideMs(e.g, 'R', e.e) / MIN), e.b || 0, e.b ? (e.m === 'e' ? 'expressed' : 'formula') : '', '', '']);
+  }
+  shareOrDownload(`milk-run-${stamp}.csv`, 'text/csv', rows.map(r => r.join(',')).join('\n'));
+}
+async function restoreData(file) {
+  try {
+    const o = JSON.parse(await file.text());
+    if (o.app !== 'milkrun' || !Array.isArray(o.ev)) throw new Error('bad');
+    const now = Date.now(); let n = 0;
+    for (const e of o.ev) { if (!e || !e.i || !e.k || !isFinite(e.s)) continue; const c = S.ev[e.i]; if (!c || (e.u || 0) >= (c.u || 0)) { S.ev[e.i] = Object.assign({}, e, { u: Math.max(e.u || 0, now) }); n++; } }
+    commit(); toast(`Restored ${plural(n, 'entry').replace('entrys', 'entries')}.`);
+  } catch (e) { toast('That file isn’t a Milk Run backup.'); }
+}
+
+/* ---------- boot ---------- */
+function welcome() {
+  openSheet(`<h2 id="sheetTitle">Welcome to Milk Run</h2>
+    <p class="sub">Time each side, log bottles and nappies, and get an alert when the next feed is due.</p>
+    <div class="actions"><button class="btn primary block" data-act="welcomeStart">Start tracking</button></div>
+    <h3>Joining your partner?</h3>
+    <div class="code"><input id="welcomeCode" class="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Invite code"><button class="btn" data-act="welcomePaste">Paste</button></div>
+    <div class="actions" style="margin-top:10px"><button class="btn block" data-act="welcomeJoin">Join</button></div>`);
+}
+function boot() {
+  if (!L.fam) { L.fam = newCode(); save(); }
+  const m = location.hash.match(/join=([0-9A-Za-z-]+)/);
+  const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  if (m) {
+    // Keep the link in Safari so Add to Home Screen can carry the invite into the installed app.
+    if (standalone) history.replaceState(null, '', location.pathname);
+    const code = normCode(m[1]);
+    if (code !== L.fam && code !== L.hashUsed) { L.hashUsed = code; L.joined = true; joinFamily(code, true); }
+  }
+  else if (!L.welcomed && !live().length) welcome();
+  keys().then(() => { if (view === 'settings') renderSettings(); });
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  render();
+  pull().then(() => flush());
+}
+setInterval(tick, 1000);
+setInterval(() => { if (!document.hidden) pull(); }, 20000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) { if (L.dirty) flush(); } else { render(); pull().then(() => flush()); } });
+window.addEventListener('online', () => { pull().then(() => flush()); });
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+boot();
+</script>
+</body>
+</html>
