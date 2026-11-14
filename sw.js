@@ -1,6 +1,6 @@
 // Milk Run service worker: serves the app from cache so it opens instantly and offline,
 // and refreshes the cache in the background. Requests to other origins (ntfy.sh) are never touched.
-const CACHE = 'milkrun-1.0.0';
+const CACHE = 'milkrun-1.1.0';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {

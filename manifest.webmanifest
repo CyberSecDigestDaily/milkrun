@@ -1,7 +1,7 @@
 {
   "name": "Milk Run",
   "short_name": "Milk Run",
-  "description": "Feed, side and nappy tracker with next-feed alerts.",
+  "description": "Feed and nappy tracker with next-feed alerts.",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#1b1633",
